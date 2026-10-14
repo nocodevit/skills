@@ -1,0 +1,15 @@
+{
+  "name": "nocodevit",
+  "owner": { "name": "nocodevit" },
+  "metadata": { "description": "Claude Code skills by nocodevit", "version": "0.1.0" },
+  "plugins": [
+    {
+      "name": "nocodevit",
+      "source": "./",
+      "description": "Make tutorial videos from steps and screenshots, rendered in code.",
+      "version": "0.1.0",
+      "author": { "name": "nocodevit" },
+      "keywords": ["video", "tutorial", "guide"]
+    }
+  ]
+}

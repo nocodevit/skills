@@ -1,0 +1,10 @@
+{
+  "name": "nocodevit",
+  "description": "Skills for Claude Code by nocodevit: make tutorial videos from steps and screenshots, rendered in code.",
+  "version": "0.1.0",
+  "author": { "name": "nocodevit" },
+  "license": "MIT",
+  "homepage": "https://github.com/nocodevit/skills",
+  "keywords": ["video", "tutorial", "guide", "playwright", "ffmpeg", "motion"],
+  "skills": ["./skills/guide-video"]
+}
