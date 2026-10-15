@@ -20,6 +20,7 @@ body{font-family:var(--font);color:var(--fg);-webkit-font-smoothing:antialiased;
 .plab{position:absolute;left:126px;top:116px;font-family:var(--mono);font-size:19px;letter-spacing:.16em;color:var(--mfg)}
 .pnum{position:absolute;left:120px;top:150px;font-size:150px;font-weight:700;letter-spacing:-.05em;line-height:1;transform-origin:0 0}
 .ptit{position:absolute;left:120px;top:330px;width:500px;font-size:62px;font-weight:600;letter-spacing:-.03em;line-height:1.06}
+.cov .ptit{font-size:74px;width:560px;line-height:1.02}.stp{display:flex;align-items:center;gap:22px;height:72px;border-top:1px solid var(--line);font-size:25px}.stp:first-child{border-top:0}.stp b{font:600 19px var(--mono);color:#ff9f5a;width:34px}.stp i{margin-left:auto;font-style:normal;font-size:15px;color:var(--mfg);font-family:var(--mono)}
 .pdesc{position:absolute;left:123px;width:480px;font-size:27px;font-weight:300;line-height:1.45;color:var(--mfg)}
 .box{position:absolute;left:680px;top:150px;width:1140px;height:720px;border-radius:24px;overflow:hidden;background:rgba(255,255,255,.05);border:1px solid var(--line);box-shadow:0 40px 120px rgba(0,0,0,.4)}
 .box.pad{padding:44px}
@@ -117,7 +118,7 @@ function spr(x,w=12,z=.85){if(x<=0)return 0;if(z>=1)return 1-Math.exp(-w*x)*(1+w
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
 
 const BOX={x:680,y:150,w:1140,h:720},BAR=46,BTN=[1830,985];
-const steps=PAGES.filter(p=>!p.done).length;
+const steps=PAGES.filter(p=>!p.done&&!p.cover).length;
 
 /* ---- timing: every page's length comes from its content ---- */
 const CPS_AI=95;const INTRO=1.25,HOLD=1.3,CPS_CODE=38,CPS_TYPE=16,CPS_CMD=28;
@@ -139,8 +140,8 @@ window.DURATION=PG[PG.length-1].end+.6;
 let n=0;
 $('pages').innerHTML=PAGES.map((p,k)=>{
   const [bg,glow]=THEME.pages[k%THEME.pages.length];
-  if(!p.done)n++;
-  p.num=p.done?'✓':String(n).padStart(2,'0');p.lab=p.done?THEME.doneLabel:`STEP ${n} OF ${steps}`;p.bg=bg;
+  if(!p.done&&!p.cover)n++;
+  p.num=p.cover?'':p.done?'✓':String(n).padStart(2,'0');p.lab=p.cover?(p.label||''):p.done?THEME.doneLabel:`STEP ${n} OF ${steps}`;p.bg=bg;
   let body='';const b=p.body;
   if(b.type==='shot'){body=`<div class="box"><div class="win"><div class="bar"><i></i><i></i><i></i><span class="url">${esc(b.url||'')}</span></div><div class="vp"><div class="cam" id="cam${k}"><img id="img${k}" src="${b.src}" width="${b.w}" height="${b.h}">${(p.actions||[]).map((a,i)=>a.do==='swap'?`<img id="sw${k}_${i}" src="${a.src}" width="${b.w}" height="${b.h}" style="opacity:0">`:'').join('')}${(p.actions||[]).map((a,i)=>
       a.do==='box'?`<div class="mark" id="mk${k}_${i}" style="left:${a.x-6}px;top:${a.y-6}px;width:${a.w+12}px;height:${a.h+12}px">${a.label?`<b>${esc(a.label)}</b>`:''}</div>`:
@@ -150,8 +151,8 @@ $('pages').innerHTML=PAGES.map((p,k)=>{
   else if(b.type==='chat'){body=`<div class="box chat"><div class="ctop"><b></b>${esc(b.title||'Claude Code')}</div><div class="cin" id="cx${k}"></div></div>`}
   else if(b.type==='code'){body=`<div class="box"><div class="ed"><div class="tab">${esc(b.file||'')}</div><pre id="code${k}"></pre></div><div class="term"><div class="ttl">TERMINAL</div><pre id="term${k}"></pre></div></div>`}
   else body=`<div class="box pad">${b.html}</div>`;
-  return `<div class="page" id="pg${k}" style="background:${bg}"><div class="glow" style="background:radial-gradient(circle,${glow}55,transparent 62%)"></div>
-    <div class="plab" id="lb${k}">${p.lab}</div><div class="pnum" id="nm${k}">${p.num}</div><div class="ptit" id="tt${k}">${esc(p.title)}</div><div class="pdesc" id="ds${k}">${esc(p.desc||'')}</div>${body}</div>`}).join('');
+  return `<div class="page${p.cover?' cov':''}" id="pg${k}" style="background:${bg}"><div class="glow" style="background:radial-gradient(circle,${glow}55,transparent 62%)"></div>
+    <div class="plab" id="lb${k}">${p.lab}</div><div class="pnum" id="nm${k}">${p.cover&&p.mark?p.mark:p.num}</div><div class="ptit" id="tt${k}">${p.titleHtml||esc(p.title)}</div><div class="pdesc" id="ds${k}">${esc(p.desc||'')}</div>${body}</div>`}).join('');
 /* description sits under however many lines the title wrapped to */
 PAGES.forEach((p,k)=>{const r=$('tt'+k).getBoundingClientRect();$('ds'+k).style.top=(r.bottom+26)+'px'});
 const NUMPOS=(()=>{const r=$('nm0').getBoundingClientRect();return[r.left,r.top]})();

@@ -18,6 +18,8 @@ Get from the user: the steps in order, who is watching (developers, customers, i
 - **body** — what the viewer sees: `shot` (a screenshot), `code` (editor + terminal) or `card` (a small piece of HTML).
 - **actions** — what happens on that body, in order.
 
+Open with a **cover page** (`cover: true`) that says what the viewer will be able to do and lists the steps: `label` (small caps line), `title` — a promise, not a topic ("Integrate with X in under 3 minutes" beats "X API guide") — optional `titleHtml` to colour the key phrase, optional `mark` (logo HTML), and a `card` body listing the steps (`<div class="stp"><b>01</b><span>Step</span><i>where</i></div>`). Give it `actions:[{do:'wait', s:3.5}]` so it holds long enough to read. The cover is not counted as a step.
+
 Three to seven steps reads well. Merge or split steps until each one has a single clear outcome, and end with a `done: true` page that recaps them.
 
 ## 2. Collect screenshots
