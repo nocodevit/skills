@@ -78,6 +78,14 @@ python3 sfx.py                                 # clicks, key ticks, the reveal "
 ./mux.sh out/video.mp4 out/guide.mp4 [music] [volume]   # music is optional and sits low (default 0.25)
 ```
 
+A recorded page-turn sounds better than any synthesized one. Ask the user to pick one from a free library (Mixkit's "Page turn single" works well) and point `sfx.py` at it; the onset is trimmed to land exactly on the transition:
+
+```bash
+REVEAL_FILE=assets/page-turn.mp3 python3 sfx.py      # REVEAL_GAIN=0.32 by default
+```
+
+Without `REVEAL_FILE` a synthesized sound is used (`REVEAL=rustle|bubble|chime|airy`). Do not commit third-party sound files to a public repository — library licences usually forbid redistributing them as-is.
+
 Send the draft as soon as it exists, then the final.
 
 ## Gotchas

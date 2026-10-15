@@ -56,7 +56,7 @@ def riser(d):
     return x ** 2 * (.07 * tone + .22 * lowpass(rnd.standard_normal(n), 8))
 
 
-REVEAL = os.environ.get('REVEAL', 'bubble')
+REVEAL = os.environ.get('REVEAL', 'rustle')
 
 
 def highpass(x, k):
@@ -90,6 +90,51 @@ def airy():
     return .045 * sw + .05 * ding
 
 
+def bandnoise(n, lo_k, hi_k):
+    # noise limited to a middle band: remove the very low (hi_k) and very high (lo_k) ends
+    x = rnd.standard_normal(n)
+    return lowpass(x, lo_k) - lowpass(x, hi_k)
+
+
+def rustle(crisp=False):
+    # a page brushing past: a soft mid-band swish plus a few paper grains near the start
+    n = int(.42 * SR); t = np.arange(n) / SR
+    env = np.minimum(1, t / .035) * np.exp(-np.maximum(t - .035, 0) / .12)
+    body = bandnoise(n, 4 if crisp else 6, 40) * env
+    grains = np.zeros(n)
+    g = int(.008 * SR)
+    for _ in range(9 if crisp else 6):
+        at = int(rnd.uniform(0, .2) * SR)
+        burst = bandnoise(g, 3, 20) * np.hanning(g) * rnd.uniform(.4, 1)
+        grains[at:at + g] += burst[:max(0, min(g, n - at))]
+    return .11 * body / (np.abs(body).max() + 1e-9) + (.05 if crisp else .035) * grains / (np.abs(grains).max() + 1e-9)
+
+
+def sample_file(path, gain):
+    """A recorded sound (e.g. a page-turn from a sound library), decoded with ffmpeg,
+    trimmed so its onset lands exactly on the cue, peak-normalised and scaled by gain."""
+    import subprocess
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 's16le', '-ac', '1', '-ar', str(SR), '-'],
+                         check=True, capture_output=True).stdout
+    x = np.frombuffer(raw, dtype=np.int16).astype(np.float64) / 32768
+    on = int(np.argmax(np.abs(x) > .05 * np.abs(x).max()))
+    x = x[max(0, on - int(.004 * SR)):]
+    return gain * x / (np.abs(x).max() + 1e-9)
+
+
+REVEAL_FILE = os.environ.get('REVEAL_FILE')
+_reveal_cache = None
+
+
+def reveal():
+    global _reveal_cache
+    if REVEAL_FILE:
+        if _reveal_cache is None:
+            _reveal_cache = sample_file(REVEAL_FILE, float(os.environ.get('REVEAL_GAIN', .32)))
+        return _reveal_cache
+    return {'chime': chime, 'bubble': bubble, 'airy': airy, 'rustle': rustle, 'rustle-crisp': lambda: rustle(True)}[REVEAL]()
+
+
 for c in cues['sfx']:
     k, t = c['k'], c['t']
     if k == 'click': put(t, click())
@@ -99,7 +144,7 @@ for c in cues['sfx']:
     elif k == 'slam': put(t, impact(.34))
     elif k == 'whoosh': put(t - .25, whoosh())
     elif k == 'riser': put(t, riser(c['d']))
-    elif k == 'reveal': put(t, {'chime': chime, 'bubble': bubble, 'airy': airy}[REVEAL]())
+    elif k == 'reveal': put(t, reveal())
 
 peak = np.abs(out).max()
 if peak > .8: out *= .8 / peak
