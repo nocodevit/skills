@@ -58,6 +58,16 @@ body{font-family:var(--font);color:var(--fg);-webkit-font-smoothing:antialiased;
 #fly{position:absolute;left:0;top:0;font-size:150px;font-weight:700;letter-spacing:-.05em;line-height:1;transform-origin:0 0;visibility:hidden;z-index:11}
 #cursor{position:absolute;left:0;top:0;width:34px;height:34px;transform-origin:4px 3px;visibility:hidden;z-index:20}
 #rip{position:absolute;left:0;top:0;width:10px;height:10px;margin:-5px;border-radius:50%;border:2px solid #fff;visibility:hidden;z-index:19}
+.term.full{top:0}
+.term.full pre{font-size:27px;line-height:1.75;padding:30px 38px}
+.term .ok{color:#5ee0a0}.term .mu{color:rgba(255,255,255,.45)}.term .pr{color:#ff9f5a}
+.chat{background:#0e0d12}
+.chat .ctop{height:46px;display:flex;align-items:center;gap:10px;padding:0 22px;border-bottom:1px solid var(--line);font:15px var(--mono);color:var(--mfg)}
+.chat .ctop b{width:10px;height:10px;border-radius:5px;background:#d97757}
+.chat .cin{position:absolute;left:0;right:0;top:46px;bottom:0;padding:30px 38px;font:22px/1.65 var(--mono);color:#e8e6e3;white-space:pre-wrap;overflow:hidden}
+.chat .you{color:#fff;background:rgba(255,255,255,.07);border-radius:10px;padding:12px 16px;margin-bottom:18px;display:block}
+.chat .you i{color:#d97757;font-style:normal}
+.chat .dot{color:#d97757}.chat .tool{color:#8fbcff}.chat .res{color:rgba(255,255,255,.5)}.chat code{color:#ffcb6b}.chat strong{color:#fff}
 </style>
 </head>
 <body>
@@ -110,12 +120,14 @@ const BOX={x:680,y:150,w:1140,h:720},BAR=46,BTN=[1830,985];
 const steps=PAGES.filter(p=>!p.done).length;
 
 /* ---- timing: every page's length comes from its content ---- */
-const INTRO=1.25,HOLD=1.3,CPS_CODE=38,CPS_TYPE=16,CPS_CMD=28;
+const CPS_AI=95;const INTRO=1.25,HOLD=1.3,CPS_CODE=38,CPS_TYPE=16,CPS_CMD=28;
 function actDur(a){switch(a.do){
   case'click':return 1.15;case'box':return 1.1;case'zoom':return 1.25;case'veil':return .5;case'swap':return .8;case'wait':return a.s;
   case'type':return .5+a.text.length/CPS_TYPE;default:return .8}}
 let T=0;const PG=PAGES.map((p,k)=>{
   const g={k,start:T,acts:[]};let t=T+INTRO;
+  if(p.body.type==='term'){g.lines=[];for(const L of p.body.lines){g.lines.push(t);t+=L.cmd?.35+L.cmd.length/CPS_CMD+.5:.16}t+=1.6}
+  if(p.body.type==='chat'){g.msgs=[];for(const m of p.body.msgs){g.msgs.push(t);t+=m.role==='user'?.3+m.text.length/CPS_TYPE*.55+.7:m.text.length/CPS_AI+1.4}}
   if(p.body.type==='code'){const c=p.body;g.codeAt=t;t+=c.code.length/CPS_CODE+.6;g.runAt=t;t+=.4+c.run.length/CPS_CMD+.7;g.outAt=t;t+=c.output.split('\n').length*.06+1.4}
   for(const a of p.actions||[]){g.acts.push({...a,t});t+=actDur(a)}
   g.end=t+HOLD+(p.done?1.6:0);T=g.end;return g});
@@ -134,6 +146,8 @@ $('pages').innerHTML=PAGES.map((p,k)=>{
       a.do==='box'?`<div class="mark" id="mk${k}_${i}" style="left:${a.x-6}px;top:${a.y-6}px;width:${a.w+12}px;height:${a.h+12}px">${a.label?`<b>${esc(a.label)}</b>`:''}</div>`:
       a.do==='veil'?`<div class="veil" id="vl${k}_${i}" style="left:${a.x}px;top:${a.y}px;width:${a.w}px;height:${a.h}px"></div>`:
       a.do==='type'?`<div class="typed" id="ty${k}_${i}" style="left:${a.x}px;top:${a.y}px;width:${a.w}px;height:${a.h}px;background:${a.bg||'transparent'};color:${a.color||'#111'};font-size:${a.size||15}px"></div>`:'').join('')}</div></div></div></div>`}
+  else if(b.type==='term'){body=`<div class="box"><div class="term full"><div class="ttl">TERMINAL</div><pre id="tx${k}"></pre></div></div>`}
+  else if(b.type==='chat'){body=`<div class="box chat"><div class="ctop"><b></b>${esc(b.title||'Claude Code')}</div><div class="cin" id="cx${k}"></div></div>`}
   else if(b.type==='code'){body=`<div class="box"><div class="ed"><div class="tab">${esc(b.file||'')}</div><pre id="code${k}"></pre></div><div class="term"><div class="ttl">TERMINAL</div><pre id="term${k}"></pre></div></div>`}
   else body=`<div class="box pad">${b.html}</div>`;
   return `<div class="page" id="pg${k}" style="background:${bg}"><div class="glow" style="background:radial-gradient(circle,${glow}55,transparent 62%)"></div>
@@ -164,6 +178,11 @@ function codeHTML(src,n,caret){const tk=tokens(src);let out='',left=n;for(const[
   const lines=out.split('\n');return lines.map((l,i)=>`<span class="ln">${i+1}</span>${l}${caret&&i===lines.length-1?'<span class="caret"></span>':''}`).join('\n')}
 const jsonHTML=s=>esc(s).replace(/("[^"]*")(\s*:)/g,'<span class="jk">$1</span>$2').replace(/:\s*("[^"]*")/g,': <span class="st">$1</span>').replace(/:\s*(-?\d+(?:\.\d+)?)/g,': <span class="nu">$1</span>');
 const SPIN='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏';
+const lastIdx=(arr,t)=>{let j=-1;arr.forEach((s,i)=>{if(t>=s)j=i});return j};
+/* tiny formatter for AI replies: ⏺ bullets, tool calls, results, `code`, **bold** */
+const fmtAI=s=>esc(s).split('\n').map(l=>{l=l.replace(/`([^`]*)`?/g,'<code>$1</code>').replace(/\*\*([^*]*)\*?\*?/g,'<strong>$1</strong>');
+  if(/^⏺ (Bash|Read|Fetch|Skill)\(/.test(l))return l.replace(/^⏺ /,'<span class="dot">⏺</span> <span class="tool">')+'</span>';
+  if(l.startsWith('⏺'))return l.replace('⏺','<span class="dot">⏺</span>');if(/^\s*⎿/.test(l))return `<span class="res">${l}</span>`;return l}).join('\n');
 
 /* =====================================================================
    RENDER — a pure function of t (seconds)
@@ -190,6 +209,13 @@ function render(t){
         if(a.do==='type'){const e=$(`ty${k}_${i}`);e.style.opacity=d>=0?1:0;const n=Math.round(clamp((d-.35)/(a.text.length/CPS_TYPE))*a.text.length);e.innerHTML=esc(a.text.slice(0,n))+(d>=0&&d<actDur(a)+.4?'<span class="caret" style="background:currentColor;height:1.1em"></span>':'')}
         if(a.do==='swap')$(`sw${k}_${i}`).style.opacity=ease(d/.35)});
     }
+    if(b.type==='term'){let out='';b.lines.forEach((L,i)=>{const s=g.lines[i];if(t<s)return;
+        if(L.cmd){const n=Math.round(clamp((t-s-.3)/(L.cmd.length/CPS_CMD))*L.cmd.length);const typing=n<L.cmd.length||t<s+.35+L.cmd.length/CPS_CMD+.5;
+          out+=`<span class="pr">$</span> ${esc(L.cmd.slice(0,n))}${typing&&i===lastIdx(g.lines,t)?'<span class="caret"></span>':''}\n`}
+        else out+=`<span class="${L.cls||''}">${esc(L.out)}</span>\n`});$('tx'+k).innerHTML=out}
+    if(b.type==='chat'){let out='';b.msgs.forEach((m,i)=>{const s=g.msgs[i];if(t<s)return;
+        if(m.role==='user'){const n=Math.round(clamp((t-s-.2)/(m.text.length/CPS_TYPE*.55))*m.text.length);out+=`<span class="you"><i>&gt;</i> ${esc(m.text.slice(0,n))}${n<m.text.length?'<span class="caret"></span>':''}</span>`}
+        else{const n=Math.floor(clamp((t-s)/(m.text.length/CPS_AI))*m.text.length);out+=fmtAI(m.text.slice(0,n))}});$('cx'+k).innerHTML=out}
     if(b.type==='code'){
       const n=Math.round(clamp((t-g.codeAt)/(b.code.length/CPS_CODE))*b.code.length);$('code'+k).innerHTML=codeHTML(b.code,n,t<g.runAt);
       const cn=Math.round(clamp((t-g.runAt-.3)/(b.run.length/CPS_CMD))*b.run.length);

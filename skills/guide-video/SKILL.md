@@ -58,6 +58,10 @@ Coordinates are in screenshot pixels.
 
 A `code` page takes `file`, `code`, `run` and `output`; the code types itself, the command runs with a spinner, and the output prints line by line (JSON is coloured).
 
+A `term` page is a terminal on its own: `lines` is a list of `{cmd}` (typed after a `$` prompt) and `{out, cls}` (printed; `cls` is `ok`, `mu` for muted, or empty). Use it for install commands — and paste real output from actually running the command rather than inventing it.
+
+A `chat` page shows someone asking an AI agent and the reply streaming in: `title` (e.g. `Claude Code`) and `msgs`, a list of `{role:'user'|'ai', text}`. In AI text, lines starting with `⏺` are steps, `⏺ Bash(...)` / `⏺ Skill(...)` are tool calls, `⎿` lines are tool results, and `` `code` `` and `**bold**` are styled. If the reply shows a result the agent did not really obtain (a sample response, a mocked call), say so in the reply text.
+
 Page length is computed from its content (typing speed, number of actions), so long steps hold longer automatically. Tune `INTRO`, `HOLD` and the `CPS_*` constants if the whole video feels rushed or slow.
 
 ## 4. Check frames before rendering video
