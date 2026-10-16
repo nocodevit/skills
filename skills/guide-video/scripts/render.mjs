@@ -14,14 +14,29 @@ const out = path.join(dir, 'out');
 const mode = process.argv[2] ?? 'draft';
 mkdirSync(out, { recursive: true });
 
-const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-page.on('pageerror', (e) => { console.error('PAGE ERROR', e.message); process.exitCode = 1; });
-await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
-await page.waitForFunction('window.ready === true');
+// The headless browser occasionally dies on long renders; open() is used again to recover.
+let browser, page;
+async function open() {
+  try { await browser?.close(); } catch {}
+  browser = await chromium.launch();
+  page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+  page.on('pageerror', (e) => { console.error('PAGE ERROR', e.message); process.exitCode = 1; });
+  await page.goto(pathToFileURL(path.join(dir, 'index.html')).href);
+  await page.waitForFunction('window.ready === true');
+}
+await open();
 const { duration, info, sfx } = await page.evaluate(() => ({ duration: window.DURATION, info: window.BEATINFO, sfx: window.SFX }));
 writeFileSync(path.join(out, 'cues.json'), JSON.stringify({ duration, ...info, sfx }, null, 1));
-const shot = async (t, opts) => { await page.evaluate((x) => window.seek(x), t); return page.screenshot(opts); };
+const shot = async (t, opts) => {
+  for (let attempt = 1; ; attempt++) {
+    try { await page.evaluate((x) => window.seek(x), t); return await page.screenshot(opts); }
+    catch (e) {
+      if (attempt >= 4) throw e;
+      console.error(`browser lost at t=${t.toFixed(3)} (${e.message.split('\n')[0]}); relaunching, attempt ${attempt + 1}`);
+      await open();
+    }
+  }
+};
 const beatTime = (b) => info.PHASE + b * info.BEAT;
 
 if (mode === 'beats' || mode === 'frame') {
